@@ -1,0 +1,20 @@
+# Core dependencies (none for the main package)
+# This is a pure Python package with no third-party dependencies
+
+# Optional dependencies for full demo/test coverage
+numpy
+pandas
+requests
+beautifulsoup4
+matplotlib
+openpyxl
+pillow
+scipy
+seaborn
+scikit-learn
+sqlalchemy
+pydantic
+tqdm
+# tensorflow
+# torch
+# django

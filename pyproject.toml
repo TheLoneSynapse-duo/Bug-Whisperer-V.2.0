@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mistake-finder"
+version = "1.0.0"
+description = "Find mistakes in your Python code and explain them in plain English — a CLI tool, a pytest plugin, and an AI-agent skill for debugging, learning, and code review."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["testing", "pytest", "debugging", "errors", "developer-tools", "learning", "education", "code-review", "ai-agent-skill"]
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: Pytest",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Education",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.scripts]
+mistake-box = "mistake_finder.mistake_box:main"
+
+[project.entry-points.pytest11]
+mistake-finder = "mistake_finder.pytest_plugin"
+
+[tool.setuptools]
+packages = ["mistake_finder"]
+package-dir = { mistake_finder = ".bob/skills/mistake-finder" }
+
+[tool.setuptools.package-data]
+mistake_finder = ["*.md"]

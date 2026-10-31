@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: mistake-finder
+    env: python
+    buildCommand: pip install .
+    startCommand: bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+  - type: worker
+    name: mistake-finder-worker
+    env: python
+    buildCommand: pip install .
+    startCommand: bash start.sh

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bug Whisperer — Find Mistakes in Your Python Code</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+      border-bottom: 1px solid #21262d;
+      text-align: center;
+      padding: 72px 24px 60px;
+    }
+    .hero .badge {
+      display: inline-block;
+      background: #1f3a5f;
+      color: #58a6ff;
+      border: 1px solid #388bfd40;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      padding: 4px 14px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      color: #f0f6fc;
+    }
+    .hero h1 span { color: #f78166; }
+    .hero p {
+      max-width: 560px;
+      margin: 0 auto 32px;
+      color: #8b949e;
+      font-size: 1.05rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; text-decoration: none; }
+    .btn-primary { background: #238636; color: #fff; margin-right: 12px; }
+    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+
+    /* ── Terminal box ── */
+    .terminal-wrap {
+      max-width: 680px;
+      margin: 48px auto 0;
+      text-align: left;
+    }
+    .terminal {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .terminal-bar {
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+      padding: 10px 16px;
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-body { padding: 20px 24px; font-family: "Menlo","Consolas","Courier New",monospace; font-size: 13px; line-height: 1.9; }
+    .t-prompt { color: #3fb950; }
+    .t-cmd { color: #e6edf3; }
+    .t-box-top { color: #58a6ff; }
+    .t-label { color: #f0883e; font-weight: 700; }
+    .t-where { color: #79c0ff; }
+    .t-arrow { color: #f78166; }
+    .t-suggest { color: #56d364; }
+    .t-muted { color: #484f58; }
+
+    /* ── Features ── */
+    .section { max-width: 900px; margin: 0 auto; padding: 64px 24px; }
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #f0f6fc;
+    }
+    .section-sub { color: #8b949e; margin-bottom: 40px; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .card-icon { font-size: 1.8rem; margin-bottom: 12px; }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: #f0f6fc; }
+    .card p { color: #8b949e; font-size: 0.9rem; line-height: 1.6; }
+
+    /* ── Steps ── */
+    .steps { counter-reset: step; display: flex; flex-direction: column; gap: 20px; }
+    .step {
+      display: flex;
+      gap: 20px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 24px;
+      align-items: flex-start;
+    }
+    .step-num {
+      counter-increment: step;
+      min-width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1f3a5f;
+      color: #58a6ff;
+      font-weight: 800;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-num::before { content: counter(step); }
+    .step-body h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; color: #f0f6fc; }
+    .step-body p { color: #8b949e; font-size: 0.88rem; }
+    .step-body code {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: "Menlo","Consolas",monospace;
+      font-size: 0.82rem;
+      color: #79c0ff;
+    }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #21262d; }
+
+    /* ── Quick Start highlight ── */
+    .quick-start {
+      margin: 0 auto;
+      max-width: 900px;
+      padding: 0 24px;
+    }
+    .qs-box {
+      background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+      border: 1px solid #388bfd60;
+      border-radius: 12px;
+      padding: 28px 32px;
+      box-shadow: 0 0 30px #388bfd15, inset 0 1px 0 #388bfd20;
+    }
+    .qs-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #58a6ff;
+      margin-bottom: 20px;
+    }
+    .qs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .qs-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .qs-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+    .qs-item strong { display: block; color: #f0f6fc; font-size: 0.95rem; margin-bottom: 4px; }
+    .qs-item code {
+      display: inline-block;
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: "Menlo","Consolas",monospace;
+      font-size: 0.8rem;
+      color: #79c0ff;
+      margin-bottom: 6px;
+    }
+    .qs-desc { color: #8b949e; font-size: 0.82rem; line-height: 1.5; margin: 0; }
+
+    /* ── CTA ── */
+    .cta {
+      text-align: center;
+      padding: 64px 24px;
+      background: #161b22;
+      border-top: 1px solid #21262d;
+    }
+    .cta h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; color: #f0f6fc; }
+    .cta p { color: #8b949e; margin-bottom: 28px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #484f58;
+      font-size: 12px;
+      border-top: 1px solid #21262d;
+    }
+    footer a { color: #484f58; }
+
+    /* ── Portfolio badge ── */
+    .portfolio-badge {
+      display: inline-block;
+      background: #238636;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="badge">Python Debugging Tool · CLI + pytest Plugin + AI-Agent Skill</div>
+  <h1>🐛 Bug <span>Whisperer</span><span class="portfolio-badge">Portfolio Project</span></h1>
+  <p>Find mistakes in your Python code, understand why they happened, and get clear advice on how to fix them — with friendly boxed error reports and an AI-agent skill that investigates safely with file:line evidence.</p>
+  <a href="#get-started" class="btn btn-primary">Get Started</a>
+  <a href="#how-it-works" class="btn btn-secondary">How It Works</a>
+
+  <!-- Terminal preview -->
+  <div class="terminal-wrap">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">$</span> <span class="t-cmd">mistake-box python mycode.py</span></div>
+        <div class="t-muted"> </div>
+        <div class="t-box-top">╔══════════════════════════════════════════════╗</div>
+        <div class="t-box-top">║ <span class="t-label">MISTAKE FOUND</span> - SyntaxError               ║</div>
+        <div class="t-box-top">╠══════════════════════════════════════════════╣</div>
+        <div class="t-box-top">║ <span class="t-label">WHERE</span>   <span class="t-where">mycode.py : line 12</span>              ║</div>
+        <div class="t-box-top">║  <span class="t-arrow">&gt;&gt; 12 |  if x = 5:</span>                        ║</div>
+        <div class="t-box-top">╠══════════════════════════════════════════════╣</div>
+        <div class="t-box-top">║ <span class="t-label">WHAT WENT WRONG</span>                            ║</div>
+        <div class="t-box-top">║   Use <span class="t-suggest">==</span> to compare, not <span class="t-arrow">=</span>                ║</div>
+        <div class="t-box-top">╠══════════════════════════════════════════════╣</div>
+        <div class="t-box-top">║ <span class="t-label">SUGGESTIONS</span>                                ║</div>
+        <div class="t-box-top">║  <span class="t-suggest">1. Replace `=` with `==` on line 12</span>       ║</div>
+        <div class="t-box-top">╚══════════════════════════════════════════════╝</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── QUICK START HIGHLIGHT ── -->
+<section class="quick-start">
+  <div class="qs-box">
+    <div class="qs-label">⚡ Quick Start — Where & How to Use It</div>
+    <div class="qs-grid">
+      <div class="qs-item">
+        <div class="qs-icon">💻</div>
+        <div>
+          <strong>In your Terminal</strong>
+          <code>mistake-box python mycode.py</code>
+          <p class="qs-desc">Run any Python file — errors show in a friendly box instead of a raw traceback.</p>
+        </div>
+      </div>
+      <div class="qs-item">
+        <div class="qs-icon">🧪</div>
+        <div>
+          <strong>With pytest</strong>
+          <code>pip install .</code> then <code>pytest</code>
+          <p class="qs-desc">Failing tests get boxed automatically. No config needed.</p>
+        </div>
+      </div>
+      <div class="qs-item">
+        <div class="qs-icon">🤖</div>
+        <div>
+          <strong>With an AI Agent</strong>
+          <code>Read .bob/skills/mistake-finder/SKILL.md</code>
+          <p class="qs-desc">Tell Claude Code, Cursor, or any agent to follow the skill.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section class="section" id="features">
+  <h2 class="section-title">What does it do?</h2>
+  <p class="section-sub">Two tools in one — instant error reports for your terminal, plus an AI-agent skill for deeper analysis.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🔴→🟢</div>
+      <h3>Fix Failing Tests</h3>
+      <p>When your tests turn red, the AI-agent skill investigates every failure in parallel, finds the root cause with file and line evidence, and proposes minimal fixes — rolling back anything that doesn't work, and stopping for human review when it cannot auto-repair.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <h3>Review Your Code</h3>
+      <p>Six parallel checks look for logic errors, security issues, missing error handling, concurrency bugs, resource leaks, and test gaps — all with file:line evidence or the finding is not reported.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📦</div>
+      <h3>Friendly Error Boxes</h3>
+      <p>Run any Python file through <code>mistake-box</code> and get a clear, human-readable report showing WHERE the mistake is, WHAT went wrong, and HOW TO FIX it — instead of a confusing raw traceback.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧪</div>
+      <h3>pytest Plugin</h3>
+      <p>Install once with <code>pip install .</code> and every <code>pytest</code> run automatically shows failing tests as friendly boxes. No configuration needed. Disable with <code>--no-mistake-box</code>.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎓</div>
+      <h3>Built for Learners</h3>
+      <p>14 demo files with intentional mistakes help you practice reading error messages. Each demo shows the wrong code, the error explained, and the correct version — a ready-made learning lab.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Zero Dependencies</h3>
+      <p>Pure Python 3.8+. No external packages required for the core tool. Install once and it works everywhere — terminal, CI, VS Code, PyCharm, any IDE.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── HOW IT WORKS ── -->
+<section class="section" id="how-it-works">
+  <h2 class="section-title">Two ways to use it</h2>
+  <p class="section-sub">A CLI tool for instant feedback. An AI-agent skill for deep analysis. Both in one package.</p>
+
+  <h3 style="font-size:1.2rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">1. As a CLI tool and pytest plugin</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:24px;margin-bottom:32px">
+    <p style="color:#8b949e;margin-bottom:16px">Install once and get instant error reports in any terminal:</p>
+    <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9">
+      <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">pip install .</span> <span style="color:#484f58"># one-time install</span></div>
+      <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">mistake-box python mycode.py</span> <span style="color:#484f58"># run and box errors</span></div>
+      <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">pytest</span> <span style="color:#484f58"># auto-box every failing test</span></div>
+    </div>
+    <p style="color:#8b949e;margin-top:16px">The <code>mistake-box</code> command wraps any Python command, catches errors, and prints a friendly box instead of a raw traceback. The pytest plugin does the same for test failures automatically.</p>
+  </div>
+
+  <h3 style="font-size:1.2rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">2. As an AI-agent skill</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:24px">
+    <p style="color:#8b949e;margin-bottom:16px">Give the skill to any AI coding agent and ask it to find and fix mistakes:</p>
+    <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9">
+      <div><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Run mistake-finder on the failing tests"</span></div>
+      <div style="margin-top:8px"><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Check my code for mistakes"</span></div>
+      <div style="margin-top:8px"><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Review src/myfile.py for mistakes"</span></div>
+    </div>
+    <p style="color:#8b949e;margin-top:16px">The skill (<code>SKILL.md</code>) works with <strong>any AI coding agent</strong> — Claude Code, Cursor, Codex, ChatGPT Codex, Devin, or any agent that can read files, run commands, and edit files. No vendor lock-in. No IDE required.</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── GET STARTED ── -->
+<section class="section" id="get-started">
+  <h2 class="section-title">Every way to use the tool</h2>
+  <p class="section-sub">10 ways to find mistakes — pick whichever fits your workflow.</p>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">1. mistake-box CLI — run a file, box the errors</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:24px;overflow-x:auto">
+    <table style="width:100%">
+      <tr><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">What you want</th><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">Command</th></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Run a Python file and catch errors</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">mistake-box python mycode.py</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Check a file for syntax errors only</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">mistake-box --file mycode.py</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Parse an existing log/error file</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">mistake-box --log ci.log</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Use plain ASCII box (no Unicode)</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">mistake-box --ascii python mycode.py</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Show the original raw error too</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">mistake-box --raw python mycode.py</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Turn off the box globally</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">set MISTAKE_BOX=0 (Windows) / export MISTAKE_BOX=0 (Mac/Linux)</td></tr>
+    </table>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">2. pytest plugin — auto-box failing tests</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:24px;overflow-x:auto">
+    <table style="width:100%">
+      <tr><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">What you want</th><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">Command</th></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Run all tests — failures get boxed</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pytest</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Run without the boxes</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pytest --no-mistake-box</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Run one test file</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pytest tests/test_demo_math.py -v</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Run one library's tests</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pytest tests/test_demo_pandas.py -v</td></tr>
+    </table>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">3. Universal command — auto-detect any Python file</h3>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9;margin-bottom:16px">
+    <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py mycode.py</span> <span style="color:#484f58"># auto-detect + analyze</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --identify mycode.py</span> <span style="color:#484f58"># identify the library</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --demo math</span> <span style="color:#484f58"># run a demo</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --test</span> <span style="color:#484f58"># run all tests</span></div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">4. Interactive menu — pick what to run</h3>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9">
+    <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python menu.py</span></div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:24px 0 12px;color:#f0f6fc">5. AI-agent skill — give it to any AI coding agent</h3>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9;margin-bottom:16px">
+    <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python install_skill.py</span> <span style="color:#484f58"># install globally</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Run mistake-finder on the failing tests"</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Check my code for mistakes"</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">You:</span> <span style="color:#e6edf3">"Review src/myfile.py for mistakes"</span></div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">Get started in 3 steps</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h4>Install Python (if you don't have it)</h4>
+        <p>Download Python 3.8+ from <a href="https://python.org/downloads">python.org/downloads</a>. On Windows, check "Add Python to PATH" during installation. Verify with <code>python --version</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h4>Install the tool</h4>
+        <p>Clone the repository (or download the ZIP), open a terminal in the project folder, and run <code>pip install .</code>. This installs the <code>mistake-box</code> command, the pytest plugin, and registers the universal command.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h4>Start finding mistakes — pick your way</h4>
+        <p>Run <code>mistake-box python mycode.py</code> to check a file. Or <code>python mistake_finder_universal.py mycode.py</code> for auto-detection. Or <code>pytest</code> for test failures. Or <code>python menu.py</code> for an interactive menu. Try the 16 demo files in <code>demos/</code> to practice.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">Try the demo files</h3>
+  <p style="color:#8b949e;margin-bottom:16px">The <code>demos/</code> folder has 14 Python files, each with one intentional mistake. Run them and read the box to learn what different errors look like:</p>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;overflow-x:auto">
+    <table style="width:100%">
+      <tr><th style="text-align:left;padding:10px 12px;border-bottom:1px solid #21262d">Demo file</th><th style="text-align:left;padding:10px 12px;border-bottom:1px solid #21262d">Library</th><th style="text-align:left;padding:10px 12px;border-bottom:1px solid #21262d">The mistake</th><th style="text-align:left;padding:10px 12px;border-bottom:1px solid #21262d">What you learn</th></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_math.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">math</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>math.sqrt(-9)</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why you can't take the square root of a negative number (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_json.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">json</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>json.loads("{'name': 'Alice'}")</code> — single quotes</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why JSON requires double quotes, not single quotes (JSONDecodeError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_requests.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">requests</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>requests.get("google.com")</code> — no https://</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why URLs need an <code>https://</code> scheme (MissingSchema)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_numpy.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">numpy</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">arrays of different shape added together</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why arrays must have the same shape (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_pandas.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pandas</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>df["names"]</code> when column is <code>"Names"</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why column names are case-sensitive (KeyError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_pydantic.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pydantic</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>age="not-a-number"</code> where int expected</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why Pydantic rejects the wrong data type (ValidationError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_sklearn.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">sklearn</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">1D array passed to <code>model.fit()</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why scikit-learn needs 2D arrays, not 1D (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_sqlalchemy.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">sqlalchemy</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>create_engine("notavalidurl://")</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why database URLs must follow a specific format (NoSuchModuleError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_bs4.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">bs4</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>BeautifulSoup(html, "notaparser")</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why BeautifulSoup needs a real parser name (FeatureNotFound)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_openpyxl.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">openpyxl</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>ws["ZZZZ99999"]</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why Excel cell references must be valid (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_pillow.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pillow</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>Image.open("ghost.png")</code> — file doesn't exist</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why you can't open a file that doesn't exist (FileNotFoundError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_scipy.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">scipy</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>inv([[1,2],[2,4]])</code> — singular matrix</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why some matrices can't be inverted (LinAlgError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_seaborn.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">seaborn</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>sns.histplot(data=None, x="col")</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why seaborn can't plot None data (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_matplotlib.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">matplotlib</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>color="notacolor"</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why matplotlib rejects invalid color names (ValueError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_tqdm.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">tqdm</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>tqdm(None)</code> — None is not iterable</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why you can't iterate over None (TypeError)</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem"><code>demos/demo_numpy_dtype.py</code></td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">numpy_dtype</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>np.dtype([...])</code> with Python list</td><td style="padding:8px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">Why dtype mismatches happen with Python lists vs numpy arrays</td></tr>
+    </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── SKILL SECTION ── -->
+<section class="section" id="ai-skill">
+  <h2 class="section-title">The AI-agent skill</h2>
+  <p class="section-sub">A skill file that teaches any AI coding agent how to find and fix mistakes systematically.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📄</div>
+      <h3><code>SKILL.md</code> — The brain</h3>
+      <p>The skill instruction file. Defines two modes (failure triage and code review), a four-phase workflow, and guardrails that keep the agent safe and evidence-based.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📋</div>
+      <h3><code>review-checklist.md</code> — Six check classes</h3>
+      <p>Logic & boundaries, error handling, concurrency & state, resource & performance, security footguns, and test gaps. Each class is a separate investigation pass.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📊</div>
+      <h3><code>report-template.md</code> — Consistent output</h3>
+      <p>Exact formats for ranked reports in both modes. Every finding includes file:line evidence, severity, confidence, and a suggested fix.</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">What to ask your AI agent</h3>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9;margin-bottom:16px">
+    <div><span style="color:#3fb950">"Run mistake-finder on the failing tests."</span> <span style="color:#484f58">→ triage failing tests</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">"Check my code for mistakes."</span> <span style="color:#484f58">→ review your code</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">"Check src/myfile.py for mistakes."</span> <span style="color:#484f58">→ review a specific file</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">"Run mistake-finder on artifacts/ci.log."</span> <span style="color:#484f58">→ analyze a log file</span></div>
+  </div>
+  <p style="color:#8b949e">The skill lives in <code>.bob/skills/mistake-finder/</code>. Tell your agent:</p>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9;margin-bottom:16px">
+    <div><span style="color:#3fb950">"Read the file .bob/skills/mistake-finder/SKILL.md and follow its</span></div>
+    <div><span style="color:#3fb950">instructions for this task."</span></div>
+  </div>
+  <p style="color:#8b949e">You can also install it globally so it's available in every project:</p>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9">
+    <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python install_skill.py</span> <span style="color:#484f58"># install globally</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python install_skill.py --check</span> <span style="color:#484f58"># verify install</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python install_skill.py --remove</span> <span style="color:#484f58"># uninstall</span></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── TECHNICAL DETAILS ── -->
+<section class="section" id="technical">
+  <h2 class="section-title">Technical details</h2>
+  <p class="section-sub">What's inside the package and how it's built.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h3>Safe by design</h3>
+      <p>Investigating agents are read-only. Tests are never weakened or deleted. Every finding needs <code>file:line</code> evidence. One fix at a time, with full rollback. The core tool runs entirely on your computer — no API keys, no cloud services, no data leaves your machine.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📦</div>
+      <h3>Installable package</h3>
+      <p><code>pip install .</code> registers two entry points: the <code>mistake-box</code> CLI command and the <code>pytest11</code> plugin. Works in any Python interpreter — VS Code Testing panel, PyCharm, terminal, CI.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h3>IDE-agnostic</h3>
+      <p>No dependency on any specific editor, AI provider, or cloud service. The skill works with any AI agent. The CLI works in any terminal. The pytest plugin works with any IDE that uses pytest.</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">The universal command — one command for any Python file</h3>
+  <p style="color:#8b949e;margin-bottom:16px"><code>mistake_finder_universal.py</code> has 5 modes. Drop any <code>.py</code> file on it and it figures out the rest.</p>
+  <div style="background:#010409;border:1px solid #30363d;border-radius:6px;padding:16px;font-family:'Menlo','Consolas',monospace;font-size:13px;line-height:1.9;margin-bottom:16px">
+    <div><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py mycode.py</span> <span style="color:#484f58"># universal — auto-detect + analyze</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --identify mycode.py</span> <span style="color:#484f58"># identify — tell me the library + command</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --pandas mycode.py</span> <span style="color:#484f58"># per-library — 25 libraries supported</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --demo math</span> <span style="color:#484f58"># demo — 16 built-in demos</span></div>
+    <div style="margin-top:8px"><span style="color:#3fb950">$</span> <span style="color:#e6edf3">python mistake_finder_universal.py --test</span> <span style="color:#484f58"># test — run all 30 pytest tests</span></div>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">All 25 libraries the tool detects</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;overflow-x:auto">
+    <table style="width:100%">
+      <tr><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">Library</th><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">Detects</th><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #21262d">Common mistake caught</th></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">math</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import math</code>, <code>math.sqrt</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">sqrt of negative → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">json</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import json</code>, <code>json.loads</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">single quotes → JSONDecodeError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">numpy</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import numpy</code>, <code>np.</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">shape mismatch → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pandas</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import pandas</code>, <code>pd.</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">wrong column case → KeyError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">requests</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import requests</code>, <code>requests.get</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">missing https:// → MissingSchema</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">bs4</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>from bs4 import</code>, <code>BeautifulSoup</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">invalid parser → FeatureNotFound</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pydantic</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>from pydantic import</code>, <code>BaseModel</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">wrong data type → ValidationError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">matplotlib</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import matplotlib</code>, <code>plt.</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">invalid color → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">seaborn</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import seaborn</code>, <code>sns.</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">None data → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">sklearn</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import sklearn</code>, <code>model.fit</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">1D array to fit() → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">sqlalchemy</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import sqlalchemy</code>, <code>create_engine</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">invalid DB URL → NoSuchModuleError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">scipy</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import scipy</code>, <code>scipy.linalg</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">singular matrix → LinAlgError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">openpyxl</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>from openpyxl import</code>, <code>Workbook(</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">invalid cell ref → ValueError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pillow</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>from PIL import</code>, <code>Image.open</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">missing file → FileNotFoundError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">tqdm</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>from tqdm import</code>, <code>tqdm(</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">iterating None → TypeError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">numpy_dtype</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>np.dtype</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">dtype with Python list → TypeError</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">tensorflow</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import tensorflow</code>, <code>tf.</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">graph/shape errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">torch</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import torch</code>, <code>torch.tensor</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">tensor shape/device errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">django</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import django</code>, <code>models.Model</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">ORM/validation errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">flask</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import flask</code>, <code>Flask(</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">routing/context errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">fastapi</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import fastapi</code>, <code>FastAPI(</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">endpoint/validation errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">pytest</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import pytest</code>, <code>pytest.raises</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">assertion/test errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">unittest</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import unittest</code>, <code>TestCase</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">assertion errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">csv</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import csv</code>, <code>csv.reader</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">parsing/format errors</td></tr>
+      <tr><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-family:'Menlo',monospace;font-size:0.82rem">sqlite3</td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem"><code>import sqlite3</code>, <code>sqlite3.connect</code></td><td style="padding:6px 12px;border-bottom:1px solid #21262d;font-size:0.85rem">SQL/connection errors</td></tr>
+    </table>
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:700;margin:32px 0 16px;color:#f0f6fc">Package information</h3>
+  <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;max-width:500px">
+    <table>
+      <tr><td>Package name</td><td><code>mistake-finder</code></td></tr>
+      <tr><td>CLI command</td><td><code>mistake-box</code></td></tr>
+      <tr><td>Universal command</td><td><code>mistake_finder_universal.py</code> (5 modes)</td></tr>
+      <tr><td>Version</td><td>1.0.0</td></tr>
+      <tr><td>Python requirement</td><td>3.8+</td></tr>
+      <tr><td>Third-party dependencies</td><td>None (core engine)</td></tr>
+      <tr><td>License</td><td>MIT</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta">
+  <h2>Ready to squash some bugs?</h2>
+  <p>Full documentation, demo files, and troubleshooting — all in the README.</p>
+  <a href="#get-started" class="btn btn-primary">Get Started</a>
+  <a href="README.md" class="btn btn-secondary">Read the README</a>
+</section>
+
+<footer>
+  Built as a portfolio project · Python debugging tool for learners and developers ·
+  rithi_hybbmvk
+</footer>
+
+</body>
+</html>

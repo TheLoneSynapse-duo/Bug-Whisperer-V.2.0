@@ -1,0 +1,47 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Environment and secrets (NEVER commit these)
+.env
+.voice_current
+
+# Voice mode temp files (optional feature)
+*.voice.wav
+*.say.wav
+
+# Distribution packages
+*.whl
+*.tar.gz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Freebuff workspace metadata (do not commit)
+.freebuff/
+
+# Misc dev artifacts
+bob_sessions/
+mistake_finder.egg-info/
+*.png
+*.log
+
+# Misc dev artifacts
+bob_sessions/
+mistake_finder.egg-info/
+*.png
+*.log
